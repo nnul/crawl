@@ -66,6 +66,8 @@
 #    ANDROID       -- perform an Android build (see docs/develop/android.txt)
 #    TOUCH_UI      -- enable UI behaviour more compatible with touch-screens
 #
+#    NO_DOCS       -- disable generating document files
+#
 #
 # Requirements:
 #    For tile builds, you need pkg-config.
@@ -84,10 +86,11 @@ MAKEFLAGS += -rR # This only works for recursive makes, i.e. contribs ...
 
 .PHONY: all test install clean clean-contrib clean-rltiles clean-android \
         clean-catch2 clean-plug-and-play-tests \
-		clean-coverage clean-coverage-full \
+        clean-coverage clean-coverage-full \
         distclean debug debug-lite profile package-source source \
         build-windows package-windows docs greet api api-dev android FORCE \
-        monster catch2-tests plug-and-play-tests
+        monster catch2-tests plug-and-play-tests \
+        build-docker
 
 include Makefile.obj
 
@@ -1097,9 +1100,14 @@ TILEDEFOBJS = $(TILEDEFPRES:%=%.o)
 TILEDEFSRCS = $(TILEDEFPRES:%=%.cc)
 TILEDEFHDRS = $(TILEDEFPRES:%=%.h)
 
+ifdef TILES_ANY
 TILEFILES = $(TILEIMAGEFILES:%=%.png)
 ORIGTILEFILES = $(TILEFILES:%=$(RLTILES)/%)
 DESTTILEFILES = $(TILEFILES:%=dat/tiles/%)
+else
+ORIGTILEFILES =
+DESTTILEFILES =
+endif
 
 OBJECTS += $(TILEDEFOBJS)
 
@@ -1215,7 +1223,11 @@ greet:
 		                  "at INSTALL.txt: the solution to your problem just might be in there!";\
 	fi
 
+ifdef NO_DOCS
+docs:
+else
 docs: $(GENERATED_DOCS)
+endif
 
 
 # Webtiles data
@@ -1291,6 +1303,7 @@ ifneq ($(GOALS),$(filter clean test %-windows,$(GOALS)))
 # This should eliminate an annoying need to use 'make clean' every time.
 #
 
+ifndef DOCKER
 TRACK_CFLAGS = $(strip $(subst ','\'',$(CC) $(CXX) $(ALL_CFLAGS)))
         # (stray ' for highlights)
 OLD_CFLAGS = $(strip $(subst ','\'',$(shell cat .cflags 2>/dev/null)))
@@ -1314,6 +1327,7 @@ endif
 
 .PHONY: .force-cflags
 
+endif
 endif
 
 ##########################################################################
@@ -1353,8 +1367,14 @@ endif
 
 # This information is included in crash reports, and is printed with
 # "crawl -version"
+
+ifdef DOCKER
+compflag.h: $(OBJECTS:.o=.cc) main.cc util/gen-cflg.pl
+	$(QUIET_GEN)util/gen-cflg.pl compflag.h "$(ALL_CFLAGS)" "$(LDFLAGS)" "$(HOST)" "$(ARCH)"
+else
 compflag.h: $(OBJECTS:.o=.cc) main.cc util/gen-cflg.pl .cflags
 	$(QUIET_GEN)util/gen-cflg.pl compflag.h "$(ALL_CFLAGS)" "$(LDFLAGS)" "$(HOST)" "$(ARCH)"
+endif
 
 build.h: $(OBJECTS:.o=.cc) main.cc util/gen_ver.pl .ver
 	$(QUIET_GEN)util/gen_ver.pl $@ $(MERGE_BASE)
@@ -1748,21 +1768,30 @@ ifdef ANDROID
         # prove that tiles were generated properly
 	grep tile_info rltiles/*.cc| head
 else
+
+ifdef TILES_ANY
 # ensure we don't use contrib libpng when cross-compiling - it won't work.
 ifdef CROSSHOST
 	+$(MAKE) -C $(RLTILES) all ARCH=$(ARCH) TILES=$(TILES)$(WEBTILES)
 else
 	+$(MAKE) -C $(RLTILES) all ARCH=$(ARCH) NO_PKGCONFIG=$(NO_PKGCONFIG) TILES=$(TILES)$(WEBTILES)
 endif
+
+else # TILES_ANY
+	+$(MAKE) -C $(RLTILES) all ARCH=$(ARCH)
+endif
+
 endif
 
 $(TILEDEFSRCS) $(TILEDEFHDRS) $(ORIGTILEFILES): build-rltiles
 
+ifdef TILES_ANY
 dat/tiles/%.png: $(RLTILES)/%.png
 	$(QUIET_PNGCRUSH)$(PNGCRUSH) $< $@
 ifdef USE_ADVPNG
 	$(QUIET_ADVPNG)$(ADVPNG) $@
 endif
+endif # TILES_ANY
 
 clean-rltiles:
 	$(RM) $(DESTTILEFILES)
@@ -1892,6 +1921,13 @@ endif
 	+cd android-project && ndk-build -$(MAKEFLAGS) && ant debug && \
 	cp bin/DungeonCrawlStoneSoup-debug.apk \
 	../../../crawl_tiles_android-$(SRC_VERSION).apk
+
+#############################################################################
+# Building docker image
+#
+
+build-docker: Dockerfile
+	docker build --force-rm -t nnul.me/crawl:latest .
 
 #############################################################################
 # Canned tests
