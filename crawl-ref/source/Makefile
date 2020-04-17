@@ -1923,13 +1923,6 @@ endif
 	../../../crawl_tiles_android-$(SRC_VERSION).apk
 
 #############################################################################
-# Building docker image
-#
-
-build-docker: Dockerfile
-	docker build --force-rm -t nnul.me/crawl:latest .
-
-#############################################################################
 # Canned tests
 #
 

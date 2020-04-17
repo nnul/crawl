@@ -1,0 +1,13 @@
+docker/
+docs/
+git-hooks/
+settings/
+source/dat/tiles/
+#source/rltiles/dngn/
+#source/rltiles/effect/
+#source/rltiles/gui/
+#source/rltiles/item/
+#source/rltiles/misc/
+#source/rltiles/mon/
+#source/rltiles/player/
+source/rltiles/UNUSED/

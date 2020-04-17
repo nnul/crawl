@@ -1,0 +1,6 @@
+#!/bin/sh
+set -e
+
+docker volume create crawl_saves
+docker volume create crawl_morgue
+docker build --force-rm -t local/crawl:latest .

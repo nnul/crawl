@@ -1,0 +1,8 @@
+#!/bin/sh
+docker run -it --rm \
+	--name crawl \
+	-h docker \
+	-v crawl_saves:/opt/crawl/saves \
+	-v crawl_morgue:/opt/crawl/morgue \
+	--entrypoint /bin/bash \
+	local/crawl $@

@@ -6,16 +6,16 @@ RUN apt-get update && \
 	libsqlite3-dev libz-dev pkg-config python-yaml binutils-gold
 
 WORKDIR /var/tmp/build
-COPY ./dat ./dat/
-COPY ./debian ./debian/
-COPY ./rltiles ./rltiles/
-COPY ./scripts ./scripts/
-COPY ./util ./util/
-COPY ./art-data.txt ./
-COPY ./*.cc ./
-COPY ./*.h ./
-COPY Makefile ./
-COPY Makefile.obj ./
+COPY source/dat ./dat/
+COPY source/debian ./debian/
+COPY source/rltiles ./rltiles/
+COPY source/scripts ./scripts/
+COPY source/util ./util/
+COPY source/art-data.txt ./
+COPY source/*.cc ./
+COPY source/*.h ./
+COPY source/Makefile ./
+COPY source/Makefile.obj ./
 RUN make -j4 NO_DOCS=1
 
 FROM ubuntu:18.04
